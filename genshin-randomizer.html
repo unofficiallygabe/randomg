@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wish Randomizer — Teyvat Roster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#070c17;
+    --bg-mid:#0d1526;
+    --bg-panel:#111b31;
+    --line:rgba(255,255,255,0.08);
+    --text:#eef1fb;
+    --text-dim:#8b93ac;
+    --gold:#e8c574;
+    --gold-soft:rgba(232,197,116,0.35);
+    --four-star:#c398f0;
+    --four-star-soft:rgba(195,152,240,0.32);
+
+    --element:#8fe3f7;
+    --element-soft:rgba(143,227,247,0.28);
+    --element-dim:rgba(143,227,247,0.08);
+
+    --radius-lg:22px;
+    --radius-md:14px;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 700px at 50% -10%, var(--element-dim), transparent 60%),
+      radial-gradient(900px 600px at 85% 110%, rgba(255,255,255,0.03), transparent 60%),
+      linear-gradient(180deg, var(--bg-deep), var(--bg-mid));
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:8vh 20px 6vh;
+    overflow-x:hidden;
+    transition:background 1.1s var(--ease);
+    position:relative;
+  }
+
+  /* ambient drifting motes */
+  .ambient{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
+  .mote{
+    position:absolute; bottom:-5%; width:3px; height:3px; border-radius:50%;
+    background:var(--element); opacity:.35; filter:blur(.5px);
+    animation:drift linear infinite;
+  }
+  @keyframes drift{
+    0%{ transform:translateY(0) translateX(0); opacity:0;}
+    10%{opacity:.5;}
+    90%{opacity:.35;}
+    100%{ transform:translateY(-115vh) translateX(var(--dx,20px)); opacity:0;}
+  }
+
+  header{
+    text-align:center;
+    z-index:1;
+    margin-bottom:3.2rem;
+  }
+  .eyebrow{
+    font-size:.72rem;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:.6rem;
+  }
+  h1{
+    font-family:'Cinzel', serif;
+    font-weight:600;
+    font-size:clamp(1.9rem, 4vw, 2.9rem);
+    margin:0 0 .5rem;
+    letter-spacing:.02em;
+    background:linear-gradient(90deg, var(--text), var(--element) 120%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    transition:background 1s var(--ease);
+  }
+  .counter{
+    font-size:.85rem;
+    color:var(--text-dim);
+    letter-spacing:.03em;
+  }
+  .counter strong{ color:var(--text); font-weight:500; }
+
+  main{
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    max-width:520px;
+  }
+
+  /* --- Central Button --- */
+  .draw-wrap{
+    position:relative;
+    width:200px;
+    height:200px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:2.6rem;
+  }
+  .draw-wrap::before{
+    content:"";
+    position:absolute; inset:-14px;
+    border-radius:50%;
+    border:1px solid var(--element-soft);
+    animation:pulseRing 2.6s ease-in-out infinite;
+  }
+  .draw-wrap::after{
+    content:"";
+    position:absolute; inset:-30px;
+    border-radius:50%;
+    border:1px solid var(--element-dim);
+    animation:pulseRing 2.6s ease-in-out infinite .5s;
+  }
+  @keyframes pulseRing{
+    0%,100%{ transform:scale(1); opacity:.5; }
+    50%{ transform:scale(1.06); opacity:1; }
+  }
+
+  #drawBtn{
+    width:180px; height:180px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,0.07), transparent 55%),
+      linear-gradient(160deg, var(--bg-panel), var(--bg-deep));
+    color:var(--text);
+    font-family:'Cinzel', serif;
+    font-size:1.02rem;
+    letter-spacing:.04em;
+    cursor:pointer;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 20px 40px -18px rgba(0,0,0,.7),
+      0 0 30px var(--element-soft);
+    transition:transform .25s var(--ease), box-shadow .5s var(--ease), border-color .5s;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center;
+    padding:0 1.6rem;
+    line-height:1.35;
+  }
+  #drawBtn:hover:not(:disabled){
+    transform:scale(1.035);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05) inset,
+      0 24px 46px -18px rgba(0,0,0,.75),
+      0 0 46px var(--element-soft);
+    border-color:var(--element-soft);
+  }
+  #drawBtn:active:not(:disabled){ transform:scale(.98); }
+  #drawBtn:disabled{ cursor:default; opacity:.55; }
+  #drawBtn:focus-visible{ outline:2px solid var(--element); outline-offset:6px; }
+
+  #drawBtn .label-sub{
+    display:block;
+    font-family:'Poppins', sans-serif;
+    font-size:.62rem;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-top:.35rem;
+  }
+
+  /* --- Spin display (cycling names) --- */
+  .spin-display{
+    min-height:1.6rem;
+    font-family:'Cinzel', serif;
+    font-size:1.1rem;
+    color:var(--element);
+    letter-spacing:.03em;
+    margin-bottom:1.6rem;
+    opacity:0;
+    transition:opacity .2s;
+  }
+  .spin-display.active{ opacity:1; }
+
+  /* --- Result card --- */
+  .stage{
+    position:relative;
+    width:100%;
+    min-height:60px;
+    display:flex;
+    justify-content:center;
+  }
+  .burst{
+    position:absolute;
+    top:-40px; left:50%;
+    width:6px; height:0;
+    background:linear-gradient(var(--element), transparent);
+    transform:translateX(-50%);
+    pointer-events:none;
+    opacity:.9;
+  }
+  .burst.go{ animation:beam .9s var(--ease) forwards; }
+  @keyframes beam{
+    0%{ height:0; opacity:1; }
+    35%{ height:340px; opacity:.9;}
+    100%{ height:340px; opacity:0; }
+  }
+
+  .particle{
+    position:absolute; top:10px; left:50%;
+    width:5px; height:5px; border-radius:50%;
+    background:var(--element);
+    box-shadow:0 0 8px 1px var(--element);
+    pointer-events:none;
+    animation:particleFly 1.1s var(--ease) forwards;
+  }
+  @keyframes particleFly{
+    0%{ transform:translate(-50%,0) scale(1); opacity:1; }
+    100%{ transform:translate(calc(-50% + var(--px)), var(--py)) scale(.2); opacity:0; }
+  }
+
+  .card{
+    width:100%;
+    border-radius:var(--radius-lg);
+    border:1px solid var(--line);
+    background:
+      radial-gradient(480px 240px at 50% 0%, var(--element-soft), transparent 70%),
+      linear-gradient(180deg, var(--bg-panel), var(--bg-deep));
+    padding:2.1rem 1.8rem 1.7rem;
+    text-align:center;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    opacity:0;
+    transform:translateY(16px) scale(.97);
+    transition:opacity .55s var(--ease), transform .55s var(--ease);
+  }
+  .card.show{ opacity:1; transform:translateY(0) scale(1); }
+
+  .rarity-row{ margin-bottom:.5rem; }
+  .star{ font-size:1.05rem; letter-spacing:.12em; }
+  .star.r5{ color:var(--gold); text-shadow:0 0 12px var(--gold-soft); }
+  .star.r4{ color:var(--four-star); text-shadow:0 0 10px var(--four-star-soft); }
+
+  .char-name{
+    font-family:'Cinzel', serif;
+    font-weight:600;
+    font-size:clamp(1.5rem, 5vw, 2.1rem);
+    margin:.15rem 0 1.15rem;
+    color:var(--text);
+  }
+
+  .tags{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:.55rem;
+    margin-bottom:1.6rem;
+  }
+  .tag{
+    display:flex; align-items:center; gap:.4rem;
+    padding:.45rem .8rem;
+    border-radius:999px;
+    background:rgba(255,255,255,0.035);
+    border:1px solid var(--line);
+    font-size:.78rem;
+    color:var(--text-dim);
+  }
+  .tag .ic{ font-size:.95rem; line-height:1; }
+  .tag.element-tag{
+    color:var(--element);
+    border-color:var(--element-soft);
+    background:var(--element-dim);
+  }
+  .tag b{ color:var(--text); font-weight:500; }
+
+  .card-actions{
+    display:flex;
+    gap:.7rem;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'Poppins', sans-serif;
+    font-size:.82rem;
+    letter-spacing:.02em;
+    padding:.7rem 1.3rem;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:all .25s var(--ease);
+  }
+  .btn:hover{ color:var(--text); border-color:rgba(255,255,255,0.22); }
+  .btn.danger{ color:#ff9c9c; border-color:rgba(255,120,120,0.25); }
+  .btn.danger:hover{ background:rgba(255,90,90,0.08); border-color:rgba(255,120,120,0.5); }
+  .btn:focus-visible{ outline:2px solid var(--element); outline-offset:2px; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:.8rem;
+    padding:.7rem 1.1rem;
+    border-radius:999px;
+    opacity:0;
+    transition:opacity .35s var(--ease), transform .35s var(--ease);
+    z-index:5;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .empty-state{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:.9rem;
+    max-width:360px;
+    line-height:1.6;
+  }
+  .empty-state .big{
+    font-family:'Cinzel', serif;
+    color:var(--text);
+    font-size:1.3rem;
+    display:block;
+    margin-bottom:.5rem;
+  }
+
+  footer{
+    z-index:1;
+    margin-top:3.2rem;
+  }
+  .reset-link{
+    background:none; border:none; cursor:pointer;
+    color:var(--text-dim); font-size:.72rem; letter-spacing:.05em;
+    text-decoration:underline; text-underline-offset:3px;
+    opacity:.6; transition:opacity .2s;
+    font-family:'Poppins', sans-serif;
+  }
+  .reset-link:hover{ opacity:1; }
+
+  @media (max-width:420px){
+    .draw-wrap{ width:170px; height:170px; }
+    #drawBtn{ width:150px; height:150px; font-size:.92rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .mote, .draw-wrap::before, .draw-wrap::after, .burst, .particle{ animation:none !important; display:none; }
+    .card, #drawBtn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient" id="ambient"></div>
+
+<header>
+  <div class="eyebrow">Teyvat Character Pool</div>
+  <h1 id="pageTitle">Wish Randomizer</h1>
+  <div class="counter"><strong id="counterNum">124</strong> / 124 characters remain in the pool</div>
+</header>
+
+<main>
+  <div class="draw-wrap">
+    <button id="drawBtn">
+      <span>
+        Randomize Character
+        <span class="label-sub" id="btnSub">Tap to draw</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="spin-display" id="spinDisplay"></div>
+
+  <div class="stage" id="stage">
+    <div class="burst" id="burst"></div>
+    <!-- card or empty state injected here -->
+  </div>
+</main>
+
+<footer>
+  <button class="reset-link" id="resetLink">reset roster</button>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+
+  /* ---------------- Character Data ---------------- */
+  const RAW = [
+["Albedo",5,"Geo","Mondstadt","Male","Sword"],["Alhaitham",5,"Dendro","Sumeru","Male","Sword"],
+["Aloy",5,"Cryo","None","Female","Bow"],["Amber",4,"Pyro","Mondstadt","Female","Bow"],
+["Arataki Itto",5,"Geo","Inazuma","Male","Claymore"],["Arlecchino",5,"Pyro","Snezhnaya","Female","Polearm"],
+["Baizhu",5,"Dendro","Liyue","Male","Catalyst"],["Barbara",4,"Hydro","Mondstadt","Female","Catalyst"],
+["Beidou",4,"Electro","Liyue","Female","Claymore"],["Bennett",4,"Pyro","Mondstadt","Male","Sword"],
+["Candace",4,"Hydro","Sumeru","Female","Polearm"],["Charlotte",4,"Cryo","Fontaine","Female","Catalyst"],
+["Chasca",5,"Anemo","Natlan","Female","Bow"],["Chevreuse",4,"Pyro","Fontaine","Female","Polearm"],
+["Chiori",5,"Geo","Inazuma","Female","Sword"],["Chongyun",4,"Cryo","Liyue","Male","Claymore"],
+["Citlali",5,"Cryo","Natlan","Female","Catalyst"],["Clorinde",5,"Electro","Fontaine","Female","Sword"],
+["Collei",4,"Dendro","Sumeru","Female","Bow"],["Columbina",5,"Hydro","Nod-Krai","Female","Catalyst"],
+["Cyno",5,"Electro","Sumeru","Male","Polearm"],["Dahlia",4,"Hydro","Mondstadt","Male","Sword"],
+["Dehya",5,"Pyro","Sumeru","Female","Claymore"],["Diluc",5,"Pyro","Mondstadt","Male","Claymore"],
+["Diona",4,"Cryo","Mondstadt","Female","Bow"],["Dori",4,"Electro","Sumeru","Female","Claymore"],
+["Durin",5,"Pyro","Mondstadt","Male","Sword"],["Emilie",5,"Dendro","Fontaine","Female","Polearm"],
+["Escoffier",5,"Cryo","Fontaine","Female","Polearm"],["Eula",5,"Cryo","Mondstadt","Female","Claymore"],
+["Faruzan",4,"Anemo","Sumeru","Female","Bow"],["Fischl",4,"Electro","Mondstadt","Female","Bow"],
+["Flins",5,"Electro","Nod-Krai","Male","Polearm"],["Freminet",4,"Cryo","Fontaine","Male","Claymore"],
+["Furina",5,"Hydro","Fontaine","Female","Sword"],["Gaming",4,"Pyro","Liyue","Male","Claymore"],
+["Ganyu",5,"Cryo","Liyue","Female","Bow"],["Gorou",4,"Geo","Inazuma","Male","Bow"],
+["Hu Tao",5,"Pyro","Liyue","Female","Polearm"],["Iansan",4,"Electro","Natlan","Female","Polearm"],
+["Ifa",4,"Anemo","Natlan","Male","Catalyst"],["Illuga",4,"Geo","Nod-Krai","Male","Polearm"],
+["Ineffa",5,"Electro","Nod-Krai","Female","Polearm"],["Jahoda",4,"Anemo","Nod-Krai","Female","Bow"],
+["Jean",5,"Anemo","Mondstadt","Female","Sword"],["Kachina",4,"Geo","Natlan","Female","Polearm"],
+["Kaedehara Kazuha",5,"Anemo","Inazuma","Male","Sword"],["Kaeya",4,"Cryo","Mondstadt","Male","Sword"],
+["Kamisato Ayaka",5,"Cryo","Inazuma","Female","Sword"],["Kamisato Ayato",5,"Hydro","Inazuma","Male","Sword"],
+["Kaveh",4,"Dendro","Sumeru","Male","Claymore"],["Keqing",5,"Electro","Liyue","Female","Sword"],
+["Kinich",5,"Dendro","Natlan","Male","Claymore"],["Kirara",4,"Dendro","Inazuma","Female","Sword"],
+["Klee",5,"Pyro","Mondstadt","Female","Catalyst"],["Kujou Sara",4,"Electro","Inazuma","Female","Bow"],
+["Kuki Shinobu",4,"Electro","Inazuma","Female","Sword"],["Lan Yan",4,"Anemo","Liyue","Female","Catalyst"],
+["Lauma",5,"Dendro","Nod-Krai","Female","Catalyst"],["Layla",4,"Cryo","Sumeru","Female","Sword"],
+["Linnea",5,"Geo","Nod-Krai","Female","Bow"],["Lisa",4,"Electro","Mondstadt","Female","Catalyst"],
+["Lohen",5,"Cryo","Mondstadt","Male","Polearm"],["Lynette",4,"Anemo","Fontaine","Female","Sword"],
+["Lyney",5,"Pyro","Fontaine","Male","Bow"],["Mavuika",5,"Pyro","Natlan","Female","Claymore"],
+["Mika",4,"Cryo","Mondstadt","Male","Polearm"],["Mona",5,"Hydro","Mondstadt","Female","Catalyst"],
+["Mualani",5,"Hydro","Natlan","Female","Catalyst"],["Nahida",5,"Dendro","Sumeru","Female","Catalyst"],
+["Navia",5,"Geo","Fontaine","Female","Claymore"],["Nefer",5,"Dendro","Nod-Krai","Male","Catalyst"],
+["Neuvillette",5,"Hydro","Fontaine","Male","Catalyst"],["Nicole",5,"Pyro","None","Female","Catalyst"],
+["Nilou",5,"Hydro","Sumeru","Female","Sword"],["Ningguang",4,"Geo","Liyue","Female","Catalyst"],
+["Noelle",4,"Geo","Mondstadt","Female","Claymore"],["Qiqi",5,"Cryo","Liyue","Female","Sword"],
+["Raiden Shogun",5,"Electro","Inazuma","Female","Polearm"],["Razor",4,"Electro","Mondstadt","Male","Claymore"],
+["Rosaria",4,"Cryo","Mondstadt","Female","Polearm"],["Sangonomiya Kokomi",5,"Hydro","Inazuma","Female","Catalyst"],
+["Sandrone",5,"Cryo","Nod-Krai","Female","Claymore"],["Sayu",4,"Anemo","Inazuma","Female","Claymore"],
+["Sethos",4,"Electro","Sumeru","Male","Bow"],["Shenhe",5,"Cryo","Liyue","Female","Polearm"],
+["Shikanoin Heizou",4,"Anemo","Inazuma","Male","Catalyst"],["Sigewinne",5,"Hydro","Fontaine","Female","Bow"],
+["Skirk",5,"Hydro","Other","Female","Sword"],["Sucrose",4,"Anemo","Mondstadt","Female","Catalyst"],
+["Tartaglia",5,"Hydro","Snezhnaya","Male","Bow"],["Thoma",4,"Pyro","Inazuma","Male","Polearm"],
+["Tighnari",5,"Dendro","Sumeru","Male","Bow"],["Varka",5,"Cryo","Mondstadt","Male","Claymore"],
+["Wanderer",5,"Anemo","Sumeru","Male","Catalyst"],["Wriothesley",5,"Cryo","Fontaine","Male","Catalyst"],
+["Xiangling",4,"Pyro","Liyue","Female","Polearm"],["Xianyun",5,"Anemo","Liyue","Female","Catalyst"],
+["Xiao",5,"Anemo","Liyue","Male","Polearm"],["Xilonen",5,"Geo","Natlan","Female","Sword"],
+["Xingqiu",4,"Hydro","Liyue","Male","Sword"],["Xinyan",4,"Pyro","Liyue","Female","Claymore"],
+["Yae Miko",5,"Electro","Inazuma","Female","Catalyst"],["Yanfei",4,"Pyro","Liyue","Female","Catalyst"],
+["Yaoyao",4,"Dendro","Liyue","Female","Polearm"],["Yelan",5,"Hydro","Liyue","Female","Bow"],
+["Yoimiya",5,"Pyro","Inazuma","Female","Bow"],["Yumemizuki Mizuki",5,"Anemo","Inazuma","Female","Catalyst"],
+["Yun Jin",4,"Geo","Liyue","Female","Polearm"],["Zibai",5,"Geo","Liyue","Female","Catalyst"],
+["Zhongli",5,"Geo","Liyue","Male","Polearm"]
+  ];
+
+  const CHARACTERS = RAW.map(c => ({name:c[0], rarity:c[1], element:c[2], nation:c[3], gender:c[4], weapon:c[5]}));
+  const TOTAL = CHARACTERS.length;
+
+  const ELEMENT_META = {
+    Pyro:   {color:"#ff7a4a", icon:"🔥"},
+    Hydro:  {color:"#4fc3f7", icon:"💧"},
+    Anemo:  {color:"#7ee8c5", icon:"🍃"},
+    Electro:{color:"#c398f0", icon:"⚡"},
+    Dendro: {color:"#8bc96b", icon:"🌿"},
+    Cryo:   {color:"#8fe3f7", icon:"❄️"},
+    Geo:    {color:"#f4c95d", icon:"🪨"}
+  };
+  const WEAPON_ICON = {
+    Sword:"🗡️", Claymore:"⚔️", Polearm:"🔱", Bow:"🏹", Catalyst:"💎"
+  };
+  const GENDER_ICON = { Male:"♂", Female:"♀" };
+
+  /* ---------------- State ---------------- */
+  let pool = [...CHARACTERS];
+  let current = null;
+  let spinning = false;
+
+  /* ---------------- DOM refs ---------------- */
+  const drawBtn = document.getElementById('drawBtn');
+  const btnSub = document.getElementById('btnSub');
+  const counterNum = document.getElementById('counterNum');
+  const spinDisplay = document.getElementById('spinDisplay');
+  const stage = document.getElementById('stage');
+  const burst = document.getElementById('burst');
+  const toast = document.getElementById('toast');
+  const resetLink = document.getElementById('resetLink');
+  const ambient = document.getElementById('ambient');
+
+  /* ---------------- Ambient motes ---------------- */
+  function spawnAmbient(){
+    ambient.innerHTML = '';
+    for(let i=0;i<22;i++){
+      const m = document.createElement('div');
+      m.className = 'mote';
+      m.style.left = Math.random()*100 + 'vw';
+      m.style.setProperty('--dx', (Math.random()*60-30)+'px');
+      m.style.animationDuration = (10 + Math.random()*10) + 's';
+      m.style.animationDelay = (Math.random()*10) + 's';
+      ambient.appendChild(m);
+    }
+  }
+  spawnAmbient();
+
+  /* ---------------- Audio (synthesized) ---------------- */
+  let actx = null;
+  function ctx(){
+    if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone(freq, start, dur, type='sine', peak=0.09){
+    const c = ctx();
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, c.currentTime + start);
+    gain.gain.linearRampToValueAtTime(peak, c.currentTime + start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start(c.currentTime + start);
+    osc.stop(c.currentTime + start + dur + 0.05);
+  }
+  function playTick(){ tone(520 + Math.random()*180, 0, 0.06, 'square', 0.035); }
+  function playChime(rarity){
+    if(rarity === 5){
+      [523.25,659.25,783.99,1046.5].forEach((f,i)=> tone(f, i*0.09, 0.5, 'sine', 0.085));
+      tone(1567.98, 0.32, 0.7, 'triangle', 0.045);
+    } else {
+      [493.88,622.25,739.99].forEach((f,i)=> tone(f, i*0.08, 0.35, 'sine', 0.06));
+    }
+  }
+  function playRemove(){ tone(420,0,0.16,'sine',0.06); tone(260,0.08,0.22,'sine',0.05); }
+  function playReset(){ tone(300,0,0.12,'triangle',0.05); tone(450,0.06,0.14,'triangle',0.05); }
+
+  /* ---------------- Helpers ---------------- */
+  function setElementTheme(el){
+    const meta = ELEMENT_META[el] || {color:"#8fe3f7"};
+    const root = document.documentElement.style;
+    root.setProperty('--element', meta.color);
+    root.setProperty('--element-soft', hexToRgba(meta.color, 0.32));
+    root.setProperty('--element-dim', hexToRgba(meta.color, 0.09));
+  }
+  function hexToRgba(hex, a){
+    const h = hex.replace('#','');
+    const bigint = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+    const r=(bigint>>16)&255, g=(bigint>>8)&255, b=bigint&255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  function updateCounter(){
+    counterNum.textContent = pool.length;
+  }
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  function spawnParticles(color){
+    for(let i=0;i<16;i++){
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const angle = (Math.random()*Math.PI) + Math.PI; // upward spread
+      const dist = 60 + Math.random()*90;
+      p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+      p.style.setProperty('--py', (Math.sin(angle)*dist - 20) + 'px');
+      p.style.background = color;
+      p.style.boxShadow = `0 0 8px 1px ${color}`;
+      p.style.animationDelay = (Math.random()*0.15)+'s';
+      stage.appendChild(p);
+      setTimeout(()=> p.remove(), 1400);
+    }
+  }
+
+  function renderCard(c){
+    stage.querySelectorAll('.card, .empty-state').forEach(n=>n.remove());
+    const meta = ELEMENT_META[c.element] || {icon:''};
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="rarity-row">
+        <span class="star r${c.rarity}">${'★'.repeat(c.rarity)}</span>
+      </div>
+      <div class="char-name">${c.name}</div>
+      <div class="tags">
+        <span class="tag element-tag"><span class="ic">${meta.icon||''}</span> <b>${c.element}</b></span>
+        <span class="tag"><span class="ic">🏳️</span> ${c.nation}</span>
+        <span class="tag"><span class="ic">${GENDER_ICON[c.gender]||''}</span> ${c.gender}</span>
+        <span class="tag"><span class="ic">${WEAPON_ICON[c.weapon]||''}</span> ${c.weapon}</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn danger" id="removeBtn">Remove from roster</button>
+      </div>
+    `;
+    stage.appendChild(card);
+    requestAnimationFrame(()=> requestAnimationFrame(()=> card.classList.add('show')));
+    document.getElementById('removeBtn').addEventListener('click', removeCurrent);
+  }
+
+  function renderEmptyState(){
+    stage.querySelectorAll('.card, .empty-state').forEach(n=>n.remove());
+    const div = document.createElement('div');
+    div.className = 'empty-state';
+    div.innerHTML = `<span class="big">The roster is empty</span>Every character has been drawn and removed. Reset the roster to start a new pool.`;
+    stage.appendChild(div);
+  }
+
+  /* ---------------- Draw logic ---------------- */
+  function randomize(){
+    if(spinning) return;
+    if(pool.length === 0){ renderEmptyState(); return; }
+
+    spinning = true;
+    drawBtn.disabled = true;
+    btnSub.textContent = 'Wishing…';
+    stage.querySelectorAll('.card, .empty-state').forEach(n=>n.remove());
+    spinDisplay.classList.add('active');
+
+    let ticks = 0;
+    const maxTicks = 16;
+    const spinInterval = setInterval(()=>{
+      const rnd = pool[Math.floor(Math.random()*pool.length)];
+      spinDisplay.textContent = rnd.name;
+      playTick();
+      ticks++;
+      if(ticks >= maxTicks){
+        clearInterval(spinInterval);
+        finishDraw();
+      }
+    }, 70);
+  }
+
+  function finishDraw(){
+    const chosen = pool[Math.floor(Math.random()*pool.length)];
+    current = chosen;
+    setElementTheme(chosen.element);
+    spinDisplay.classList.remove('active');
+    spinDisplay.textContent = '';
+
+    const meta = ELEMENT_META[chosen.element] || {color:'#8fe3f7'};
+    burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go');
+    spawnParticles(meta.color);
+
+    setTimeout(()=>{
+      renderCard(chosen);
+      playChime(chosen.rarity);
+    }, 160);
+
+    setTimeout(()=>{
+      spinning = false;
+      drawBtn.disabled = false;
+      btnSub.textContent = 'Tap to draw';
+    }, 500);
+  }
+
+  function removeCurrent(){
+    if(!current) return;
+    const idx = pool.indexOf(current);
+    if(idx > -1) pool.splice(idx,1);
+    playRemove();
+    const card = stage.querySelector('.card');
+    if(card){
+      card.style.transition = 'opacity .4s ease, transform .4s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(10px) scale(.96)';
+    }
+    showToast(`${current.name} removed from the roster`);
+    updateCounter();
+    current = null;
+    setTimeout(()=>{
+      if(pool.length === 0) renderEmptyState();
+      else stage.querySelectorAll('.card').forEach(n=>n.remove());
+    }, 380);
+  }
+
+  function resetRoster(){
+    pool = [...CHARACTERS];
+    current = null;
+    updateCounter();
+    stage.querySelectorAll('.card, .empty-state').forEach(n=>n.remove());
+    setElementTheme('Cryo');
+    playReset();
+    showToast('Roster reset — all characters restored');
+    drawBtn.disabled = false;
+    btnSub.textContent = 'Tap to draw';
+  }
+
+  /* ---------------- Init ---------------- */
+  updateCounter();
+  setElementTheme('Cryo');
+  drawBtn.addEventListener('click', randomize);
+  resetLink.addEventListener('click', resetRoster);
+
+})();
+</script>
+</body>
+</html>
